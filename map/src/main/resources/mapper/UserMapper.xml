@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+一个mapper映射文件是以sql语句为单位进行配置，最终将sql语句封装到MappedStatement对象中
+namespace命名空间作用是更好对sql语句进行隔离，方便管理sql
+
+注意：后期讲mybatis的mapper代理开发方式时namespace有特殊的作用，如下：
+namespace等于mapper接口类路径，这样实现通过映射文件找到对应的mapper接口是哪个
+
+ -->
+<mapper namespace="cn.itcast.mybatis.mapper.UserMapper">
+
+	<!-- 根据用户id查询一个用户信息
+    select：用于查询，主要配置sql语句、输入参数类型、输出结果类型
+    最终该 select 标签 中所配置的内容会封装到MappedStatement对象，可以将该 select称为是一个Statement
+    id：唯 一标识 namespace下的一个sql语句，将id称为Statement的id
+
+    parameterType：指定输入参数的类型（简单类型、自定义pojo）
+    #{}：表示一个占位符号，占位符号可以防止sql注入
+    #{value}：value表示接收输入参数的值，如果接收的输入参数是简单类型，#{}里边可以写value或其它的名称
+    resultType：将sql查询结果集映射成java对象
+    将多个列的值映射到一个对象中，需要定义的pojo，resultType映射规则是sql查询列名和pojo的属性名必须一致方可完成映射
+    resultType 指定单条记录所映射的java对象
+
+    -->
+	<select id="findUserById" parameterType="int" resultType="cn.itcast.mybatis.po.User">
+		SELECT id,username,birthday,sex,address  FROM USER WHERE id = #{id}
+	</select>
+
+	<!-- 使用resultMap将列名和pojo的属性值作一个对应关系，完成映射
+    id：唯一标识 一个元素
+    type：最终映射的pojo类型
+    -->
+	<resultMap type="cn.itcast.mybatis.po.User" id="queryUserResultMap">
+		<!-- id标识 查询结果集中唯一标识列
+        column：结果集中唯 一标识 的列名
+        property：将唯一标识 的列所映射到的type指定的pojo的属性名
+         -->
+		<id column="id_" property="id"/>
+		<!-- 如果结果集有多个列组合成一个唯 一标识，定义两个id标签 -->
+		<!-- result表示：普通列 -->
+		<result column="username_" property="username"/>
+		<result column="birthday_" property="birthday"/>
+		<result column="sex_" property="sex"/>
+		<result column="address_" property="address"/>
+	</resultMap>
+
+
+	<!-- 查询用户，使用resultMap完成结果映射 -->
+	<select id="findUserByIdResultMap" parameterType="int" resultMap="queryUserResultMap">
+		SELECT id id_,username username_,birthday birthday_,sex sex_,address address_  FROM USER WHERE id = #{id}
+	</select>
+
+	<!--
+    根据用户名称模糊查询用户信息列表
+    resultType：不管结果集记录的数量有多少，resutType指定单条记录所映射的java对象
+    resultType映射规则是sql查询列名和pojo的属性名必须一致方可完成映射
+    ${}：表示一个sql拼接符号，相当于字符串的拼接：
+    “SELECT * FROM USER WHERE username LIKE '%” + ${}表示的串 + “%'”
+    ${}：如果接收输入参数是一个简单类型，${} 中只能写value
+
+    ${}实现sql拼接是无法防止sql注入的。
+
+     -->
+	<select id="findUserByName" parameterType="java.lang.String" resultType="cn.itcast.mybatis.po.User">
+		SELECT * FROM USER WHERE username LIKE '%${value}%'
+	</select>
+
+	<!-- 添加用户
+    需要输入参数是多个值，如果传入简单类型是无法满足要求。
+    输入参数类型可以定义为pojo（cn.itcast.mybatis.po.User包括多个属性）
+    #{}如何获取对象的值？
+    #{}是通过OGNL读取对象的值，OGNL的表达式方式：属性.属性.属性。。。。直到把对象中的属性值读取过来 过止
+    mysql数据库通过select LAST_INSERT_ID();获取自增主键的值,在insert语句执行之后去执行LAST_INSERT_ID()获取新记录的主键
+    -->
+	<insert id="insertUser" parameterType="cn.itcast.mybatis.po.User">
+		<!--
+        keyProperty：将主键值设置到输入参数的哪个属性，设置到user的id属性中
+        order：selectkey中的sql语句在insert语句执行的前或后，这里要设置成"AFTER"
+        resultType：select LAST_INSERT_ID()查询出的值
+         -->
+		<selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+			select LAST_INSERT_ID()
+		</selectKey>
+		insert into user(username,birthday,sex,address) values(#{username},#{birthday},#{sex},#{address});
+	</insert>
+
+	<!-- 使用mysql的uuid生成主键 -->
+	<!-- <insert id="insertUser" parameterType="cn.itcast.mybatis.po.User">
+
+        keyProperty：将主键值设置到输入参数的哪个属性，设置到user的id属性中
+        order：select uuid()在insert执行之前去执行得到uuid作为主键，将主键值设置到user的属性中
+        resultType：select uuid()查询出的值
+
+        <selectKey keyProperty="id" order="BEFORE" resultType="java.lang.String">
+            select uuid()
+        </selectKey>
+        insert into user(id,username,birthday,sex,address) values(#{id},#{username},#{birthday},#{sex},#{address});
+    </insert> -->
+
+	<!-- 修改用户-->
+	<update id="updateUser" parameterType="cn.itcast.mybatis.po.User">
+		update user set username=#{username},birthday=#{birthday},sex=#{sex},address=#{address} where id=#{id}
+	</update>
+
+	<!-- 删除用户 -->
+	<delete id="deleteUser" parameterType="int">
+		delete from user where id = #{id}
+	</delete>
+
+</mapper>

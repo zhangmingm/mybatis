@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="cn.itcast.mybatis.mapper.UserMapperCustom">
+
+	<!-- 定义一个sql片段，将重复的sql语句抽取出来
+		建议：定义查询条件以单表为单位去定义，sql片段可重用性才高
+		建议不要包括where
+		建议以单个为单位去定义查询条件，一般要将查询条件写全
+	 -->
+	<sql id="query_user_where">
+			<!-- 如果有条件值再拼接 -->
+			<if test="user!=null">
+				<if test="user.username!=null and user.username!=''">
+					<!-- 用户输入条件值再拼接 -->
+					and username like '%${user.username}%'
+				</if>
+				<if test="user.sex!=null and user.sex!=''">
+					and sex = #{user.sex}
+				</if>
+				<!-- 下边要拼接：
+				AND  id IN (1,10,16)
+				 -->
+				<!-- 遍历id列表 
+				collection：接收输入参数中的集合属性
+				item：每次循环定义一个对象名
+				open：开始循环时拼接的sql
+				close：结束循环时拼接的sql
+				separator：每两次循环中间拼接的sql
+				-->
+				<foreach collection="ids" item="id" open=" AND  id IN ( " close=" ) " separator=",">
+					#{id}
+				</foreach>
+				<!-- 思考：如何拼接
+				 AND (id=1 OR id=10 OR id=16)
+				 -->
+			</if>
+	</sql>
+
+	<!-- 综合条件查询用户 -->
+	<select id="findUserList" parameterType="queryUserVo"	resultType="user">
+		select id,username,birthday,sex,address from user
+	
+	   <!-- where标签 相关于where关键字，可以将条件中的第一个and去掉 -->
+		<where>
+		<!-- 引用sql片段
+		如果跨mapper引用需要前边加namespace
+		 -->
+		<include refid="query_user_where"/>
+	   </where>
+	</select>
+	
+	<!-- 综合条件查询用户记录汇总 -->
+	<select id="findUserCount" parameterType="queryUserVo" resultType="int">
+		select count(*) from user where 1=1
+
+		<if test="user.username!=null and user.username!=''">
+			<!-- 用户输入条件值再拼接 -->
+			and username like '%${user.username}%'
+		</if>
+		<if test="user.sex!=null and user.sex!=''">
+			and sex = #{user.sex}
+		</if>
+	</select>
+
+</mapper>
